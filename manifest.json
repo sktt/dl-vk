@@ -1,0 +1,17 @@
+{
+  "name": "vk.com - Music Download Tool",
+  "version": "0.1",
+  "description": "Adds download functionality to vk.com music pages and nothing else. It rotates play button which turns it into a download button.",
+  "content_scripts": [
+    {
+      "matches": ["*://*.vk.com/*"],
+      "js": ["dist/content.js"]
+    }
+  ],
+  "background": {
+    "scripts": ["bg.js"],
+    "persistent": false
+  },
+  "permissions": ["*://*.vk.me/*"],
+  "manifest_version": 2
+}
