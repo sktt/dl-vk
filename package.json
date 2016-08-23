@@ -1,10 +1,10 @@
 {
   "name": "dl-vk",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Adds download functionality to vk.com music pages and nothing else. It rotates play button which turns it into a download button.",
   "dependencies": {
     "kefir": "^3.2.1",
-    "kefir-observable-selector": "^0.1.0"
+    "kefir-observable-selector": "^0.2.1"
   },
   "devDependencies": {
     "rollup-plugin-includepaths": "^0.1.2",
@@ -12,6 +12,7 @@
   },
   "scripts": {
     "build": "rollup -c ./rollup.config.js",
+    "pack": "NODE_ENV=production npm run build && zip -r vk-dl.zip bg.js dist manifest.json icon128.png",
     "watch": "nodemon -w ./src --exec npm run build"
   },
   "repository": {

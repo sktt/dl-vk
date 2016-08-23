@@ -1,37 +1,55 @@
 import Kefir from 'kefir'
 import {obsAdded} from 'kefir-observable-selector'
 
-function download(e) {
-  e.stopPropagation() // dont play
+var script = document.createElement('script')
+script.setAttribute('type', 'text/javascript')
+script.innerHTML = `(${function() {
+  function download(id) {
+    ajax.post('al_audio.php', {
+      act: 'reload_audio',
+      ids: id
+    }, {
+      onDone: function(res) {
+        // has to be run in backgrond to set download attribute. to a cross-origin url
+        const song = AudioUtils.asObject(res[0])
 
-  // has to be run in backgrond to set download attribute. to a cross-origin url
-  chrome.extension.sendMessage({
-    dl: {
-      href: this.querySelector('input').value.match(/^[^\?]*/)[0],
-      name: this.parentNode.querySelector('.title_wrap').innerText
-    }
-  }, () => {})
-}
+        window.postMessage({type: 'vk-dl', song}, '*')
+      }
+    });
+  }
+  window.addEventListener('vk-dl', e => {
+    download(e.detail)
+  });
+}.toString()})()`;
+document.body.appendChild(script)
 
-obsAdded(document.querySelector('#page_body'), '#audios_list', true).map(
-  els => els[0] // subtree can give the same many times
-).flatMapLatest(
-  // replace with latest stream, unsubs previous
-  el => Kefir.merge([
-    obsAdded(el.querySelector('#initial_list'), '[id^=audio].audio.fl_l'),
-    obsAdded(el.querySelector('#search_list'), '[id^=audio].audio.fl_l')
-  ])
-).onValue(els => {
-  els.forEach(el => {
-    const playBtn = el.querySelector('.play_btn')
-    if(!playBtn.nextElementSibling.matches('.play_btn')) {
-      const pbClone = playBtn.cloneNode(true)
-      pbClone.style.transform = 'rotateZ(90deg)'
-      pbClone.style.marginRight = '-9px'
-      pbClone.addEventListener('click', download)
-      playBtn.parentNode.insertBefore(pbClone, playBtn)
-      el.querySelector('.info').style.width = '365px'
-      el.querySelector('.title_wrap').style.width = '305px'
-    }
-  })
+window.addEventListener('message', (e) => {
+  if (e.data.type === 'vk-dl') {
+    const song = e.data.song
+
+    const ta = document.createElement('textarea')
+    ta.innerHTML = `${song.performer} - ${song.title}` //&amp; -> & etc
+
+    chrome.extension.sendMessage({
+      dl: {
+        href: song.url,
+        name: ta.value
+      }
+    }, () => {})
+  }
 })
+
+obsAdded(document.querySelector('#page_body'), '.audio_row', true)
+  .flatten()
+  .onValue(el => {
+    const playBtn = el.querySelector('.audio_play_wrap')
+    const pbClone = playBtn.cloneNode(true)
+    pbClone.style.transform = 'rotateZ(90deg)'
+    pbClone.style.marginRight = '6px'
+    pbClone.style.float = 'left'
+    pbClone.querySelector('button').addEventListener('click', e => {
+      e.stopPropagation();
+      window.dispatchEvent(new CustomEvent('vk-dl', {detail: pbClone.parentNode.dataset.fullId}))
+    })
+    playBtn.parentNode.insertBefore(pbClone, playBtn)
+  })
